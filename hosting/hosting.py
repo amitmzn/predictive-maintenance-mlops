@@ -4,7 +4,7 @@ import os
 
 api = HfApi(token=os.getenv("HF_TOKEN"))
 
-# Resolve deployment folder relative to this script's location
+
 script_dir = Path(__file__).resolve().parent
 deployment_folder = script_dir.parent / "deployment"
 

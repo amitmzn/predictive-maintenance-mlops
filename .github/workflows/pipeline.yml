@@ -1,11 +1,14 @@
 name: Predictive Maintenance MLOps Pipeline
- 
+
 on:
   push:
     branches:
       - main
   workflow_dispatch:
- 
+
+permissions:
+  contents: write
+
 jobs:
   register-dataset:
     runs-on: ubuntu-latest
@@ -21,7 +24,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python model_building/data_register.py
- 
+
   data-prep:
     needs: register-dataset
     runs-on: ubuntu-latest
@@ -37,7 +40,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python model_building/data_prep.py
- 
+
   model-training:
     needs: data-prep
     runs-on: ubuntu-latest
@@ -53,7 +56,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python model_building/train.py
- 
+
   deploy-hosting:
     needs: model-training
     runs-on: ubuntu-latest
@@ -69,3 +72,28 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python hosting/hosting.py
+
+  push-updates:
+    needs: deploy-hosting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+      - name: Install Dependencies
+        run: pip install pandas numpy scikit-learn xgboost huggingface_hub datasets joblib mlflow
+      - name: Generate Updated Artifacts
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python model_building/data_prep.py
+          python model_building/train.py
+      - name: Push Code Updates to Main Branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Auto-update: pipeline artifacts [skip ci]"
+          git push origin main

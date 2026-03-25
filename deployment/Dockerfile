@@ -8,4 +8,5 @@ ENV HOME=/home/user \
 	PATH=/home/user/.local/bin:$PATH
 WORKDIR $HOME/app
 COPY --chown=user . $HOME/app
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.enableXsrfProtection=false"]
+CMD ["streamlit", "run", "app.py", "--server.port=7860", "--server.address=0.0.0.0", "--server.enableXsrfProtection=false"]
+

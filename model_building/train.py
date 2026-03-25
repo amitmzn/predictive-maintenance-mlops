@@ -13,7 +13,7 @@ from scipy.stats import randint, uniform
 
 RANDOM_STATE = 42
 
-# 1. Finalized Feature Engineering (Matches Notebook Exactly)
+# 1. Finalized Feature Engineering
 def add_features(dataframe):
     df = dataframe.copy()
     df['RPM_per_Oil_Pressure'] = df['Engine_RPM'] / (df['Lub_Oil_Pressure'] + 0.01)
@@ -21,21 +21,21 @@ def add_features(dataframe):
     df['RPM_per_Coolant_Pressure'] = df['Engine_RPM'] / (df['Coolant_Pressure'] + 0.01)
     df['RPM_per_Oil_Temp'] = df['Engine_RPM'] / (df['Lub_Oil_Temperature'] + 0.01)
     df['RPM_per_Coolant_Temp'] = df['Engine_RPM'] / (df['Coolant_Temperature'] + 0.01)
-    
+
     df['Engine_Load_Fuel'] = df['Engine_RPM'] * df['Fuel_Pressure']
     df['Engine_Load_Oil'] = df['Engine_RPM'] * df['Lub_Oil_Pressure']
     df['Engine_Load_Coolant'] = df['Engine_RPM'] * df['Coolant_Pressure']
-    
+
     df['Oil_Temp_Diff'] = df['Lub_Oil_Temperature'] - df['Coolant_Temperature']
     df['Oil_Coolant_Pressure_Ratio'] = df['Lub_Oil_Pressure'] / (df['Coolant_Pressure'] + 0.01)
-    
+
     df['RPM_low'] = (df['Engine_RPM'] < 600).astype(int)
     df['RPM_high'] = (df['Engine_RPM'] > 900).astype(int)
     df['LubTemp_low'] = (df['Lub_Oil_Temperature'] < 76).astype(int)
-    
+
     df['RPM_sq'] = df['Engine_RPM'] ** 2
     df['RPM_log'] = np.log1p(df['Engine_RPM'])
-    
+
     return df
 
 if __name__ == "__main__":
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     )
 
     print("3. Preprocessing (Learned entirely from Train split to prevent leakage)...")
-    
+
     # Learn bounds from Train only
     q1 = X_train_raw['Coolant_Temperature'].quantile(0.25)
     q3 = X_train_raw['Coolant_Temperature'].quantile(0.75)
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     )
 
     xgb_search.fit(X_train_scaled, y_train, sample_weight=sample_weight_train)
-    
+
     best_xgb = XGBClassifier(
         **xgb_search.best_params_,
         random_state=RANDOM_STATE,
@@ -123,7 +123,7 @@ if __name__ == "__main__":
         tree_method='hist',
         early_stopping_rounds=30,
     )
-    
+
     best_xgb.fit(
         X_train_scaled, y_train,
         sample_weight=sample_weight_train,
@@ -148,7 +148,7 @@ if __name__ == "__main__":
     joblib.dump(best_xgb, os.path.join(model_dir, "xgboost_model.joblib"))
     joblib.dump(scaler, os.path.join(model_dir, "scaler.joblib"))
     joblib.dump(imputer, os.path.join(model_dir, "imputer.joblib"))
-    
+
     # Save the artifacts the frontend UI needs to preprocess single rows
     preprocess_artifacts = {
         'coolant_upper_bound': float(coolant_upper_bound),
