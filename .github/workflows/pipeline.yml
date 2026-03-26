@@ -95,5 +95,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -A
+          git reset -- "*.csv"
+          git reset -- "**/*.joblib"
+          git reset -- "predictive_maintenance_project/"
           git diff --cached --quiet || git commit -m "Auto-update: pipeline artifacts [skip ci]"
           git push origin main
