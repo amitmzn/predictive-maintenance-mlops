@@ -1,7 +1,6 @@
 import pandas as pd
 import numpy as np
 import os
-import glob
 from sklearn.model_selection import train_test_split
 from huggingface_hub import HfApi
 
@@ -25,13 +24,13 @@ column_mapping = {
 }
 df.rename(columns=column_mapping, inplace=True)
 
-X = df.drop('Engine_Condition', axis=1)
-y = df['Engine_Condition']
-
-# Handle missing values
+# Handle missing values FIRST 
 numerical_cols = df.select_dtypes(include=[np.number]).columns
 for col in numerical_cols:
     df[col] = df[col].fillna(df[col].median())
+
+X = df.drop('Engine_Condition', axis=1)
+y = df['Engine_Condition']
 
 # 2. Strict Train / Validation / Test Split (Zero Data Leakage)
 X_train_full, X_test_raw, y_train_full, y_test = train_test_split(
@@ -43,19 +42,17 @@ X_train_raw, X_val_raw, y_train, y_val = train_test_split(
 )
 
 # 3. Save Raw Splits Locally
-data_dir = 'predictive_maintenance_project/data'
-os.makedirs(data_dir, exist_ok=True)
+os.makedirs('predictive_maintenance_project/data', exist_ok=True)
 
 X_train_raw.to_csv("Xtrain.csv", index=False)
 X_val_raw.to_csv("Xval.csv", index=False)
 X_test_raw.to_csv("Xtest.csv", index=False)
-
 y_train.to_csv("ytrain.csv", index=False)
 y_val.to_csv("yval.csv", index=False)
 y_test.to_csv("ytest.csv", index=False)
 
-# Upload to Hugging Face
-files = ["Xtrain.csv", "Xval.csv","Xtest.csv", "ytrain.csv", "yval.csv", "ytest.csv"]
+# 4. Upload to Hugging Face Dataset
+files = ["Xtrain.csv", "Xval.csv", "Xtest.csv", "ytrain.csv", "yval.csv", "ytest.csv"]
 for file_path in files:
     api.upload_file(
         path_or_fileobj=file_path,
