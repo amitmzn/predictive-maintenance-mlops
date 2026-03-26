@@ -10,8 +10,10 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import roc_auc_score, accuracy_score, precision_recall_curve, precision_score, recall_score, f1_score
 from sklearn.utils.class_weight import compute_sample_weight
 from scipy.stats import randint, uniform
+from huggingface_hub import HfApi
 
 RANDOM_STATE = 42
+MODEL_REPO = "amitmzn/predictive-maintenance-model"
 
 # 1. Finalized Feature Engineering
 def add_features(dataframe):
@@ -89,7 +91,7 @@ if __name__ == "__main__":
     X_train_scaled = pd.DataFrame(scaler.fit_transform(train_feat), columns=train_feat.columns, index=train_feat.index)
     X_val_scaled = pd.DataFrame(scaler.transform(val_feat), columns=val_feat.columns, index=val_feat.index)
 
-    print("4. Tuning and Training XGBoost...")
+    print("4. Training XGBoost with Randomized Search...")
     sample_weight_train = compute_sample_weight(class_weight='balanced', y=y_train)
 
     param_dist = {
@@ -145,11 +147,10 @@ if __name__ == "__main__":
     model_dir = "predictive_maintenance_project/model_building"
     os.makedirs(model_dir, exist_ok=True)
 
-    joblib.dump(best_xgb, os.path.join(model_dir, "xgboost_model.joblib"))
+    joblib.dump(best_xgb, os.path.join(model_dir, "best_maintenance_model.joblib"))
     joblib.dump(scaler, os.path.join(model_dir, "scaler.joblib"))
     joblib.dump(imputer, os.path.join(model_dir, "imputer.joblib"))
 
-    # Save the artifacts the frontend UI needs to preprocess single rows
     preprocess_artifacts = {
         'coolant_upper_bound': float(coolant_upper_bound),
         'optimal_threshold': optimal_threshold,
@@ -157,4 +158,25 @@ if __name__ == "__main__":
     }
     joblib.dump(preprocess_artifacts, os.path.join(model_dir, "preprocessing_bounds.joblib"))
 
+    print("6. Uploading All Artifacts to Hugging Face Model Hub...")
+    api = HfApi(token=os.getenv("HF_TOKEN"))
+
+    artifacts_to_upload = [
+        "best_maintenance_model.joblib",
+        "scaler.joblib",
+        "imputer.joblib",
+        "preprocessing_bounds.joblib",
+    ]
+
+    for filename in artifacts_to_upload:
+        filepath = os.path.join(model_dir, filename)
+        api.upload_file(
+            path_or_fileobj=filepath,
+            path_in_repo=filename,
+            repo_id=MODEL_REPO,
+            repo_type="model",
+        )
+        print(f"  Uploaded: {filename}")
+
+    print(f"All artifacts uploaded to {MODEL_REPO}")
     print("All artifacts successfully saved! Ready for UI deployment.")
